@@ -1,0 +1,16 @@
+# API Server
+fastapi
+pydantic
+
+# Settings
+pydantic-settings
+
+# Database
+pymongo[srv]
+
+# Server
+uvicorn[standard]
+
+# Development
+pip-tools
+black

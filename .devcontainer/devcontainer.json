@@ -1,0 +1,38 @@
+{
+  "name": "FARM Stack To-Do App",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/FARM-Intro",
+  "forwardPorts": [8000, 3000, 27017],
+  "portsAttributes": {
+    "8000": { "label": "FastAPI backend", "onAutoForward": "notify" },
+    "3000": { "label": "React frontend", "onAutoForward": "openBrowser" },
+    "27017": { "label": "MongoDB", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "mongodb.mongodb-vscode",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    }
+  },
+  "remoteEnv": {
+    "DB_URL": "mongodb://localhost:27017/",
+    "DB_NAME": "farm_intro"
+  },
+  "postCreateCommand": "pip install -r backend/requirements.txt && cd frontend && npm ci && bash /workspaces/FARM-Intro/.devcontainer/track.sh created || true",
+  "postStartCommand": "echo 'Services ready: MongoDB local on 27017. Backend and frontend start automatically after attach.'; bash /workspaces/FARM-Intro/.devcontainer/track.sh started || true",
+  "postAttachCommand": {
+    "backend": "cd backend && DEBUG_MODE=true uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+    "frontend": "cd frontend && HOST=0.0.0.0 npm start"
+  }
+}
