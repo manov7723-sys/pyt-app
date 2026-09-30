@@ -1,4 +1,4 @@
-name: CI (build all services) · dd-this
+name: CI - Build and Push
 
 on:
   push:
@@ -12,36 +12,35 @@ permissions:
 
 jobs:
   build-and-push:
-    name: Build and push all services
-    environment: dd-this-dev
+    name: Build and Push Images
     runs-on: ubuntu-latest
+    environment: dd-this-dev
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials (OIDC — no stored secrets)
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::411232894985:role/gha-manov7723-sys-pyt-app-pyt-app-backend
           aws-region: us-east-1
 
-      - name: Log in to Amazon ECR
+      - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and tag backend image
+      - name: Build backend image
         env:
           ECR: 411232894985.dkr.ecr.us-east-1.amazonaws.com/pyt-app-backend
           TAG: ${{ github.sha }}
         run: |
           docker build \
-            --build-arg REACT_APP_BACKEND_URL="${{ vars.REACT_APP_BACKEND_URL }}" \
             -t "$ECR:$TAG" \
             -t "$ECR:latest" \
             -f backend/Dockerfile \
             backend
 
-      - name: Scan backend image for vulnerabilities
+      - name: Scan backend image
         continue-on-error: true
         env:
           ECR: 411232894985.dkr.ecr.us-east-1.amazonaws.com/pyt-app-backend
@@ -53,8 +52,7 @@ jobs:
             --severity CRITICAL,HIGH \
             --ignore-unfixed \
             --exit-code 1 \
-            "$ECR:$TAG" \
-            || echo "::warning::Trivy flagged issues or could not run — non-blocking, see logs."
+            "$ECR:$TAG" || true
 
       - name: Push backend image
         env:
@@ -64,19 +62,20 @@ jobs:
           docker push "$ECR:$TAG"
           docker push "$ECR:latest"
 
-      - name: Build and tag frontend image
+      - name: Build frontend image
         env:
           ECR: 411232894985.dkr.ecr.us-east-1.amazonaws.com/pyt-app-frontend
           TAG: ${{ github.sha }}
+          REACT_APP_BACKEND_URL: ${{ vars.REACT_APP_BACKEND_URL }}
         run: |
           docker build \
-            --build-arg REACT_APP_BACKEND_URL="${{ vars.REACT_APP_BACKEND_URL }}" \
+            --build-arg REACT_APP_BACKEND_URL="$REACT_APP_BACKEND_URL" \
             -t "$ECR:$TAG" \
             -t "$ECR:latest" \
             -f frontend/Dockerfile \
             frontend
 
-      - name: Scan frontend image for vulnerabilities
+      - name: Scan frontend image
         continue-on-error: true
         env:
           ECR: 411232894985.dkr.ecr.us-east-1.amazonaws.com/pyt-app-frontend
@@ -88,8 +87,7 @@ jobs:
             --severity CRITICAL,HIGH \
             --ignore-unfixed \
             --exit-code 1 \
-            "$ECR:$TAG" \
-            || echo "::warning::Trivy flagged issues or could not run — non-blocking, see logs."
+            "$ECR:$TAG" || true
 
       - name: Push frontend image
         env:
