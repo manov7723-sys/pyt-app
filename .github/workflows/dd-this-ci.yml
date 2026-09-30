@@ -1,4 +1,4 @@
-name: CI - Build and Push
+name: CI (build all services) · dd-this
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build-and-push:
-    name: Build and Push Images
+    name: Build and push all services
     runs-on: ubuntu-latest
     environment: dd-this-dev
 
