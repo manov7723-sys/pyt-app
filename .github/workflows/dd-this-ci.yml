@@ -96,4 +96,3 @@ jobs:
         run: |
           docker push "$ECR:$TAG"
           docker push "$ECR:latest"
-```
