@@ -1,132 +1,130 @@
 name: CI (build all services) · dd-this-2
 
 on:
-push:
-branches:
-- main
+  push:
+    branches:
+      - main
 
-workflow_dispatch:
+  workflow_dispatch:
 
 permissions:
-id-token: write
-contents: read
+  id-token: write
+  contents: read
 
 env:
-AWS_REGION: us-east-1
-BACKEND_ECR: 411232894985.dkr.ecr.us-east-1.amazonaws.com/pyt-app-backend
-FRONTEND_ECR: 411232894985.dkr.ecr.us-east-1.amazonaws.com/pyt-app-frontend
+  AWS_REGION: us-east-1
+  BACKEND_ECR: 411232894985.dkr.ecr.us-east-1.amazonaws.com/pyt-app-backend
+  FRONTEND_ECR: 411232894985.dkr.ecr.us-east-1.amazonaws.com/pyt-app-frontend
 
 jobs:
+  build-and-push:
+    name: Build and push all services
+    runs-on: ubuntu-latest
+    environment: dd-this-2-dev
 
-build-and-push:
-name: Build and push all services
-runs-on: ubuntu-latest
-environment: dd-this-2-dev
+    steps:
 
-```
-steps:
+      # ==========================================
+      # CHECKOUT
+      # ==========================================
 
-  # ==========================================
-  # CHECKOUT
-  # ==========================================
-
-  - name: Checkout repository
-    uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
 
-  # ==========================================
-  # AWS AUTHENTICATION
-  # GitHub OIDC - no AWS access keys stored
-  # ==========================================
+      # ==========================================
+      # AWS AUTHENTICATION
+      # GitHub OIDC - no AWS access keys stored
+      # ==========================================
 
-  - name: Configure AWS credentials
-    uses: aws-actions/configure-aws-credentials@v4
-    with:
-      role-to-assume: arn:aws:iam::411232894985:role/gha-manov7723-sys-pyt-app-pyt-app-backend
-      aws-region: ${{ env.AWS_REGION }}
-
-
-  # ==========================================
-  # AMAZON ECR LOGIN
-  # ==========================================
-
-  - name: Login to Amazon ECR
-    uses: aws-actions/amazon-ecr-login@v2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::411232894985:role/gha-manov7723-sys-pyt-app-pyt-app-backend
+          aws-region: ${{ env.AWS_REGION }}
 
 
-  # ==========================================
-  # BACKEND
-  # ==========================================
+      # ==========================================
+      # AMAZON ECR LOGIN
+      # ==========================================
 
-  - name: Build backend Docker image
-    env:
-      IMAGE_TAG: ${{ github.sha }}
-      BACKEND_URL: ${{ vars.REACT_APP_BACKEND_URL }}
-    run: |
-      docker build \
-        --build-arg REACT_APP_BACKEND_URL="$BACKEND_URL" \
-        -t "${BACKEND_ECR}:${IMAGE_TAG}" \
-        -t "${BACKEND_ECR}:latest" \
-        -f backend/Dockerfile \
-        backend
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
 
-  - name: Scan backend image with Trivy
-    continue-on-error: true
-    env:
-      IMAGE_TAG: ${{ github.sha }}
-    run: |
-      docker run --rm \
-        -v /var/run/docker.sock:/var/run/docker.sock \
-        aquasec/trivy:0.65.0 image \
-        --severity CRITICAL,HIGH \
-        --ignore-unfixed \
-        --exit-code 1 \
-        "${BACKEND_ECR}:${IMAGE_TAG}"
+      # ==========================================
+      # BACKEND
+      # ==========================================
+
+      - name: Build backend Docker image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          BACKEND_URL: ${{ vars.REACT_APP_BACKEND_URL }}
+        run: |
+          docker build \
+            --build-arg REACT_APP_BACKEND_URL="$BACKEND_URL" \
+            -t "${BACKEND_ECR}:${IMAGE_TAG}" \
+            -t "${BACKEND_ECR}:latest" \
+            -f backend/Dockerfile \
+            backend
 
 
-  - name: Push backend image to ECR
-    env:
-      IMAGE_TAG: ${{ github.sha }}
-    run: |
-      docker push "${BACKEND_ECR}:${IMAGE_TAG}"
-      docker push "${BACKEND_ECR}:latest"
+      - name: Scan backend image with Trivy
+        continue-on-error: true
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.65.0 image \
+            --severity CRITICAL,HIGH \
+            --ignore-unfixed \
+            --exit-code 1 \
+            "${BACKEND_ECR}:${IMAGE_TAG}"
 
 
-  # ==========================================
-  # FRONTEND
-  # ==========================================
-
-  - name: Build frontend Docker image
-    env:
-      IMAGE_TAG: ${{ github.sha }}
-      BACKEND_URL: ${{ vars.REACT_APP_BACKEND_URL }}
-    run: |
-      docker build \
-        --build-arg REACT_APP_BACKEND_URL="$BACKEND_URL" \
-        -t "${FRONTEND_ECR}:${IMAGE_TAG}" \
-        -t "${FRONTEND_ECR}:latest" \
-        -f frontend/Dockerfile \
-        frontend
+      - name: Push backend image to ECR
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push "${BACKEND_ECR}:${IMAGE_TAG}"
+          docker push "${BACKEND_ECR}:latest"
 
 
-  - name: Scan frontend image with Trivy
-    continue-on-error: true
-    env:
-      IMAGE_TAG: ${{ github.sha }}
-    run: |
-      docker run --rm \
-        -v /var/run/docker.sock:/var/run/docker.sock \
-        aquasec/trivy:0.65.0 image \
-        --severity CRITICAL,HIGH \
-        --ignore-unfixed \
-        --exit-code 1 \
-        "${FRONTEND_ECR}:${IMAGE_TAG}"
+      # ==========================================
+      # FRONTEND
+      # ==========================================
+
+      - name: Build frontend Docker image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          BACKEND_URL: ${{ vars.REACT_APP_BACKEND_URL }}
+        run: |
+          docker build \
+            --build-arg REACT_APP_BACKEND_URL="$BACKEND_URL" \
+            -t "${FRONTEND_ECR}:${IMAGE_TAG}" \
+            -t "${FRONTEND_ECR}:latest" \
+            -f frontend/Dockerfile \
+            frontend
 
 
-  - name: Push frontend image to ECR
-    env:
-      IMAGE_TAG: ${{ github.sha }}
-    run: |
-      docker push "${FRONTEND_ECR}:${IMAGE_TAG}"
-      docker push "${FRONTEND_ECR}:latest"
+      - name: Scan frontend image with Trivy
+        continue-on-error: true
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.65.0 image \
+            --severity CRITICAL,HIGH \
+            --ignore-unfixed \
+            --exit-code 1 \
+            "${FRONTEND_ECR}:${IMAGE_TAG}"
+
+
+      - name: Push frontend image to ECR
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push "${FRONTEND_ECR}:${IMAGE_TAG}"
+          docker push "${FRONTEND_ECR}:latest"
