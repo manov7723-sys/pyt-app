@@ -1,10 +1,11 @@
-# Build context hygiene — keep images small & reproducible
+# Build context hygiene — keep the image small and reproducible.
 .git
 .gitignore
 node_modules
 npm-debug.log*
 yarn-error.log*
 .pnpm-store
+
 # Python: a developer's virtualenv and caches must never enter the image —
 # `COPY . .` would ship a host-built .venv the container cannot use.
 .venv
@@ -15,28 +16,24 @@ __pycache__
 .mypy_cache
 .ruff_cache
 .tox
+
+# Build output
 dist
 build
 out
-.next
-target
-# C++ build output. A committed build/ carries the developer's CMakeCache.txt,
-# and cmake refuses a cache created for a different directory ("CMakeCache.txt
-# directory ... is different than ...") — the image dies before compiling a
-# line. A host-built binary in there is also the wrong architecture.
-# (build/ and out/ are already excluded above.)
-cmake-build-*
-_deps
-vcpkg_installed
-CMakeCache.txt
-CMakeFiles
 .cache
 coverage
+
+# Secrets stay out of the build context entirely.
 .env
 .env.*
+
+# Editor/docs noise
 *.md
 .vscode
 .idea
+
+# Docker files themselves don't belong in the context.
 Dockerfile
 docker-compose.yml
 .dockerignore
